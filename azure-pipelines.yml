@@ -23,6 +23,6 @@ steps:
 - script: |
     echo Pipeline Start.
     echo ---------------------
-    echo "$ {{ parameters.IssueUpdateWebHook }} "
+    echo "${{ parameters.IssueUpdateWebHook.resource.id }}"
     echo Pipeline End
   displayName: 'Run a multi-line script'
