@@ -14,13 +14,15 @@ resources:
 pool:
   vmImage: ubuntu-latest
 
-steps:
-- script: echo Hello, world!
-  displayName: 'Run a one-line script'
+parameters:
+  - name: IssueUpdateWebHook
+    type: object
+    default: {}
 
+steps:
 - script: |
-    echo Add other tasks to build, test, and deploy your project.
+    echo Pipeline Start.
     echo ---------------------
-    echo test
-    echo ---------------------
+    echo "{{parameters.IssueUpdateWebHook}}"
+    echo Pipeline End
   displayName: 'Run a multi-line script'
