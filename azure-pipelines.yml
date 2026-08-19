@@ -24,13 +24,39 @@ variables:
     WorkItemID: ${{ parameters.IssueUpdateWebHook.resource.workItemId }}
 
 steps:
+
+# Debug
 - script: |
-    echo Pipeline Start.
+    echo Pipeline Start
     echo ---------------------
-    echo "$(Question)"
-    echo "$(WorkItemID)"
+    echo WorkItemID=$(WorkItemID)
+    echo Question=$(Question)
     echo ---------------------
     echo Pipeline End
-  displayName: 'Run a multi-line script'
+  displayName: 'Debug WebHook Data'
 
+# Add Comment
+- pwsh: |
+    $workItemId = "$(WorkItemID)"
+
+    $commentText = "Pipeline Test Success`n`nQuestion:`n$(Question)`n`n自動コメント追加テスト"
+
+    $body = @{
+      text = $commentText
+    } | ConvertTo-Json
+
+    $url = "$(System.CollectionUri)$(System.TeamProject)/_apis/wit/workItems/$workItemId/comments?api-version=7.1-preview.3"
+
+    Invoke-RestMethod `
+      -Uri $url `
+      -Method Post `
+      -Headers @{
+        Authorization = "Bearer $env:SYSTEM_ACCESSTOKEN"
+        "Content-Type" = "application/json"
+      } `
+      -Body $body
+
+  displayName: 'Add Comment To Work Item'
+  env:
+    SYSTEM_ACCESSTOKEN: $(System.AccessToken)
 
