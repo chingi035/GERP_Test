@@ -1,8 +1,3 @@
-# Starter pipeline
-# Start with a minimal pipeline that you can customize to build and deploy your code.
-# Add steps that build, run tests, deploy, and more:
-# https://aka.ms/yaml
-
 trigger: none
 pr: none
 
@@ -20,43 +15,42 @@ parameters:
     default: {}
 
 variables:
-    Question: ${{ parameters.IssueUpdateWebHook.resource.revision.fields['System.Description'] }}
-    WorkItemID: ${{ parameters.IssueUpdateWebHook.resource.workItemId }}
+  Question: ${{ parameters.IssueUpdateWebHook.resource.revision.fields['System.Description'] }}
+  WorkItemID: ${{ parameters.IssueUpdateWebHook.resource.workItemId }}
 
 steps:
 
-# Debug
-- script: |
-    echo Pipeline Start
-    echo ---------------------
-    echo "WorkItemID=$(WorkItemID)"
-    echo "Question=$(Question)"
-    echo ---------------------
-    echo Pipeline End
+- pwsh: |
+    Write-Host "Pipeline Start"
+    Write-Host "WorkItemID=$(WorkItemID)"
+    Write-Host "Question=$(Question)"
+    Write-Host "Pipeline End"
   displayName: 'Debug WebHook Data'
 
-# Add Comment
-- pwsh: |
-    $workItemId = "$(WorkItemID)"
+- task: UsePythonVersion@0
+  inputs:
+    versionSpec: '3.9'
+  displayName: 'Use Python 3.9'
 
-    $commentText = "Pipeline Test Success`n`nQuestion:`n$(Question)`n`n自動コメント追加テスト"
+- bash: |
+    pip install requests
+  displayName: 'Install Python Dependencies'
 
-    $body = @{
-      text = $commentText
-    } | ConvertTo-Json
-
-    $url = "$(System.CollectionUri)$(System.TeamProject)/_apis/wit/workItems/$workItemId/comments?api-version=7.1-preview.3"
-
-    Invoke-RestMethod `
-      -Uri $url `
-      -Method Post `
-      -Headers @{
-        Authorization = "Bearer $env:SYSTEM_ACCESSTOKEN"
-        "Content-Type" = "application/json"
-      } `
-      -Body $body
-
-  displayName: 'Add Comment To Work Item'
+- bash: |
+    python ai_analyzer.py
+  displayName: 'Analyze Issue Text'
   env:
-    SYSTEM_ACCESSTOKEN: $(System.AccessToken)
+    WORK_ITEM_ID: $(WorkItemID)
+    QUESTION: $(Question)
+    AI_API_URL: https://devtoolbox-api.devtoolbox-api.workers.dev/ai/generate
 
+- bash: |
+    python comment_handler.py
+  displayName: 'Add Comment To Issue'
+  env:
+    WORK_ITEM_ID: $(WorkItemID)
+    HAS_CHINESE: $(HasChinese)
+    CHINESE_TEXT: $(ChineseText)
+    SYSTEM_COLLECTION_URI: $(System.CollectionUri)
+    SYSTEM_TEAM_PROJECT: $(System.TeamProject)
+    SYSTEM_ACCESS_TOKEN: $(System.AccessToken)
