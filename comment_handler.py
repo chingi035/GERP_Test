@@ -1,0 +1,149 @@
+#!/usr/bin/env python3
+"""
+Comment Handler for Azure Pipeline
+Adds AI analysis result comments to work items
+"""
+
+import json
+import sys
+import os
+import requests
+from typing import Optional
+
+
+def get_auth_headers(access_token: str) -> dict:
+    """
+    Generate authorization headers for Azure DevOps API
+    """
+    return {
+        "Authorization": f"Bearer {access_token}",
+        "Content-Type": "application/json"
+    }
+
+
+def generate_comment(has_chinese: bool, chinese_text: Optional[list] = None) -> str:
+    """
+    Generate comment text based on analysis result
+    """
+    if has_chinese:
+        # Format chinese_text for display
+        if isinstance(chinese_text, str):
+            try:
+                chinese_text = json.loads(chinese_text)
+            except (json.JSONDecodeError, TypeError):
+                chinese_text = [chinese_text]
+        
+        if not isinstance(chinese_text, list):
+            chinese_text = [chinese_text]
+        
+        chinese_text_str = "\n".join(str(item) for item in chinese_text) if chinese_text else "N/A"
+        
+        comment = f"""【AIチェック結果】
+
+❌ 中国語が検出されました
+
+検出内容:
+{chinese_text_str}"""
+    else:
+        comment = """【AIチェック結果】
+
+✅ 中国語は検出されませんでした"""
+    
+    return comment
+
+
+def add_comment_to_workitem(
+    work_item_id: str,
+    comment: str,
+    collection_uri: str,
+    project: str,
+    access_token: str,
+    api_version: str = "7.1-preview.3"
+) -> bool:
+    """
+    Add comment to Azure DevOps work item via REST API
+    """
+    try:
+        url = f"{collection_uri}{project}/_apis/wit/workItems/{work_item_id}/comments?api-version={api_version}"
+        
+        body = {
+            "text": comment
+        }
+        
+        headers = get_auth_headers(access_token)
+        
+        response = requests.post(
+            url,
+            json=body,
+            headers=headers,
+            timeout=30
+        )
+        
+        response.raise_for_status()
+        
+        print(f"Comment successfully added to work item {work_item_id}")
+        return True
+    
+    except requests.exceptions.RequestException as e:
+        print(f"Error adding comment to work item: {e}", file=sys.stderr)
+        if hasattr(e, 'response') and e.response is not None:
+            print(f"Response: {e.response.text}", file=sys.stderr)
+        sys.exit(1)
+
+
+def main():
+    """
+    Main function to handle comment posting
+    """
+    # Get environment variables
+    work_item_id = os.getenv("WORK_ITEM_ID", "")
+    has_chinese_str = os.getenv("HAS_CHINESE", "false").lower()
+    chinese_text = os.getenv("CHINESE_TEXT", "[]")
+    
+    collection_uri = os.getenv("SYSTEM_COLLECTION_URI", "")
+    project = os.getenv("SYSTEM_TEAM_PROJECT", "")
+    access_token = os.getenv("SYSTEM_ACCESS_TOKEN", "")
+    
+    # Validate required variables
+    required_vars = [
+        ("WORK_ITEM_ID", work_item_id),
+        ("SYSTEM_COLLECTION_URI", collection_uri),
+        ("SYSTEM_TEAM_PROJECT", project),
+        ("SYSTEM_ACCESS_TOKEN", access_token),
+    ]
+    
+    missing_vars = [var_name for var_name, var_value in required_vars if not var_value]
+    
+    if missing_vars:
+        print(f"Error: Missing required environment variables: {', '.join(missing_vars)}", file=sys.stderr)
+        sys.exit(1)
+    
+    # Convert string to boolean
+    has_chinese = has_chinese_str == "true"
+    
+    print("=" * 40)
+    print(f"Work Item ID: {work_item_id}")
+    print(f"Has Chinese: {has_chinese}")
+    print(f"Chinese Text: {chinese_text}")
+    print("=" * 40)
+    
+    # Generate comment
+    comment = generate_comment(has_chinese, chinese_text)
+    print(f"Generated Comment:\n{comment}")
+    print("=" * 40)
+    
+    # Add comment to work item
+    print("Adding comment to work item...")
+    add_comment_to_workitem(
+        work_item_id=work_item_id,
+        comment=comment,
+        collection_uri=collection_uri,
+        project=project,
+        access_token=access_token
+    )
+    
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
