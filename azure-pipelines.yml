@@ -3,8 +3,8 @@
 # Add steps that build, run tests, deploy, and more:
 # https://aka.ms/yaml
 
-trigger:
-- main
+trigger: none
+pr: none
 
 resources:
   webhooks:
@@ -21,11 +21,16 @@ parameters:
 
 variables:
     Question: ${{ parameters.IssueUpdateWebHook.resource.revision.fields['System.Description'] }}
+    WorkItemID: ${{ parameters.IssueUpdateWebHook.resource.workItemId }}
 
 steps:
 - script: |
     echo Pipeline Start.
     echo ---------------------
     echo "$(Question)"
+    echo "$(WorkItemID)"
+    echo ---------------------
     echo Pipeline End
   displayName: 'Run a multi-line script'
+
+
