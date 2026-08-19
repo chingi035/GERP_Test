@@ -6,6 +6,11 @@
 trigger:
 - main
 
+resources:
+  webhooks:
+    - webhook: IssueUpdateWebHook
+      connection: TestWebHookConnect
+
 pool:
   vmImage: ubuntu-latest
 
