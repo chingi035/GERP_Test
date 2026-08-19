@@ -19,10 +19,13 @@ parameters:
     type: object
     default: {}
 
+variables:
+    Question: ${{ parameters.IssueUpdateWebHook.resource.revision.fields['System.Description'] }}
+
 steps:
 - script: |
     echo Pipeline Start.
     echo ---------------------
-    echo "${{ parameters.IssueUpdateWebHook.resource.fields['System.Description'] }}"
+    echo "$(Question)"
     echo Pipeline End
   displayName: 'Run a multi-line script'
