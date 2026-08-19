@@ -23,6 +23,6 @@ steps:
 - script: |
     echo Pipeline Start.
     echo ---------------------
-    echo "${{ parameters.IssueUpdateWebHook.resource.fields['Custom.ac7ca816-2f9d-4c41-b383-8f60c4789e88'].newValue }}"
+    echo "${{ parameters.IssueUpdateWebHook.resource.fields['System.Description'] }}"
     echo Pipeline End
   displayName: 'Run a multi-line script'
