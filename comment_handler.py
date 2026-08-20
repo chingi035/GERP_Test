@@ -27,14 +27,14 @@ def generate_comment(has_chinese: bool, chinese_text: Optional[list] = None,
     """
     Generate comment text based on analysis result
     """
-    comment_lines = []
+    lines = []
     
     # Add Chinese detection result
-    comment_lines.append("【AIチェック結果】\n")
+    lines.append("【AIチェック結果】")
     
     if has_chinese:
-        comment_lines.append("❌ 中国語が検出されました\n")
-        comment_lines.append("検出内容:")
+        lines.append("❌ 中国語が検出されました")
+        lines.append("検出内容:")
         
         # Format chinese_text for display
         if isinstance(chinese_text, str):
@@ -47,17 +47,27 @@ def generate_comment(has_chinese: bool, chinese_text: Optional[list] = None,
             chinese_text = [chinese_text]
         
         if chinese_text:
-            comment_lines.append("\n".join(f"  - {str(item)}" for item in chinese_text))
+            for item in chinese_text:
+                lines.append(f"- {str(item)}")
         else:
-            comment_lines.append("  N/A")
+            lines.append("N/A")
     else:
-        comment_lines.append("✅ 中国語は検出されませんでした\n")
+        lines.append("✅ 中国語は検出されませんでした")
     
     # Add recommendation template
-    comment_lines.append("\n\n以下の点について改善をご検討いただけますと幸いです。\n")
-    comment_lines.append(f"背景：\n{background}\n")
-    comment_lines.append(f"質問内容：\n{question_content}\n")
-    comment_lines.append(f"提案：\n{proposal}")
+    lines.append("")
+    lines.append("以下の点について改善をご検討いただけますと幸いです。")
+    lines.append("")
+    lines.append("背景：")
+    lines.append(background)
+    lines.append("")
+    lines.append("質問内容：")
+    lines.append(question_content)
+    lines.append("")
+    lines.append("提案：")
+    lines.append(proposal)
+    
+    return "\n".join(lines)
     
     return "\n".join(comment_lines)
 
