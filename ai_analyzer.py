@@ -36,30 +36,32 @@ Issue ID:
 対象テキスト:
 {clean_text}
 
+■タスク1: 中国語判定
 対象テキストに簡体字中国語（中国大陸で使用される中国語の文章）が含まれているか判定してください。
 
-重要な注意:
-- ファイル名、パス、URLなどの技術的なテキストは判定対象外です（例：ItemInfo.csv、config.xml など）
-- 日本語の漢字（例：内容、入力、画面、変更、エラーなど）は中国語ではありません
+判定ルール:
+- ファイル名、パス、URLなどの技術的なテキストは判定対象外（例：ItemInfo.csv、config.xml）
+- 日本語の漢字（例：内容、入力、画面、変更、エラー）は中国語ではありません
 - 英数字、記号、コード表記は判定対象外です
-- 繁体字中文（台湾や香港の中国語）は判定の対象外とします
-- 簡体字の自然言語文章のみを判定対象としてください
+- 繁体字中文は判定対象外です
+- 簡体字の自然言語文章のみが対象です
 
-判定基準:
-- 中国語は通常、連続した簡体字の文字から構成されます
-- 単語や用語ではなく、意味のある文章や段落の中に含まれている場合のみ「中国語」と判定してください
+■タスク2: 改善提案の生成
+対象テキストから以下の3つの情報を抽出して、改善提案を生成してください：
 
-さらに、対象テキストが中国語以外の問題を含む場合は、改善提案を生成してください。
+1. 背景（background）：問題が発生した背景や原因
+2. 質問内容（question_content）：具体的な問題や質問
+3. 提案（proposal）：改善のための具体的な提案
 
-以下のJSONのみ返却してください。以下の例を参考にしてください：
+以下のJSONのみ返却してください（マークダウンやコメントは不要）：
 
 {{
   "has_chinese": false,
   "chinese_text": [],
   "recommendation": {{
-    "background": "対象テキストの背景情報があればここに記入",
-    "question_content": "判定された問題や質問内容",
-    "proposal": "改善の提案内容"
+    "background": "問題の背景・原因を簡潔に記入",
+    "question_content": "具体的な問題内容を記入",
+    "proposal": "改善するための具体的な提案を記入"
   }}
 }}"""
     
@@ -213,12 +215,16 @@ def main():
     print(f"Chinese Text: {json.dumps(chinese_text)}")
     print(f"Recommendation: {json.dumps(recommendation, ensure_ascii=False)}")
     
-    # Output as Azure Pipeline variables
+    # Output as Azure Pipeline variables (use JSON encoding for multi-line values)
     print(f"##vso[task.setvariable variable=HasChinese]{json.dumps(has_chinese).lower()}")
     print(f"##vso[task.setvariable variable=ChineseText]{json.dumps(chinese_text)}")
-    print(f"##vso[task.setvariable variable=RecommendationBackground]{recommendation.get('background', 'なし')}")
-    print(f"##vso[task.setvariable variable=RecommendationQuestionContent]{recommendation.get('question_content', 'なし')}")
-    print(f"##vso[task.setvariable variable=RecommendationProposal]{recommendation.get('proposal', 'なし')}")
+    # Use JSON encoding to preserve multi-line content with special characters
+    background = recommendation.get('background', 'なし')
+    question_content = recommendation.get('question_content', 'なし')
+    proposal = recommendation.get('proposal', 'なし')
+    print(f"##vso[task.setvariable variable=RecommendationBackground]{json.dumps(background)}")
+    print(f"##vso[task.setvariable variable=RecommendationQuestionContent]{json.dumps(question_content)}")
+    print(f"##vso[task.setvariable variable=RecommendationProposal]{json.dumps(proposal)}")
     
     return 0
 

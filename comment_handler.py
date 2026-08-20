@@ -25,16 +25,18 @@ def generate_comment(has_chinese: bool, chinese_text: Optional[list] = None,
                      background: str = "なし", question_content: str = "なし", 
                      proposal: str = "なし") -> str:
     """
-    Generate comment text based on analysis result
+    Generate comment text based on analysis result using markdown format
     """
     lines = []
     
-    # Add Chinese detection result
-    lines.append("【AIチェック結果】")
+    # Add Chinese detection result using markdown format
+    lines.append("### 【AIチェック結果】")
+    lines.append("")
     
     if has_chinese:
-        lines.append("❌ 中国語が検出されました")
-        lines.append("検出内容:")
+        lines.append("❌ **中国語が検出されました**")
+        lines.append("")
+        lines.append("**検出内容:**")
         
         # Format chinese_text for display
         if isinstance(chinese_text, str):
@@ -50,26 +52,30 @@ def generate_comment(has_chinese: bool, chinese_text: Optional[list] = None,
             for item in chinese_text:
                 lines.append(f"- {str(item)}")
         else:
-            lines.append("N/A")
+            lines.append("- N/A")
+        lines.append("")
     else:
-        lines.append("✅ 中国語は検出されませんでした")
+        lines.append("✅ **中国語は検出されませんでした**")
+        lines.append("")
     
-    # Add recommendation template
+    # Add recommendation template with clear markdown formatting
+    lines.append("---")
     lines.append("")
-    lines.append("以下の点について改善をご検討いただけますと幸いです。")
+    lines.append("### 以下の点について改善をご検討いただけますと幸いです。")
     lines.append("")
-    lines.append("背景：")
-    lines.append(background)
+    lines.append("**背景：**")
     lines.append("")
-    lines.append("質問内容：")
-    lines.append(question_content)
+    lines.append(str(background))
     lines.append("")
-    lines.append("提案：")
-    lines.append(proposal)
+    lines.append("**質問内容：**")
+    lines.append("")
+    lines.append(str(question_content))
+    lines.append("")
+    lines.append("**提案：**")
+    lines.append("")
+    lines.append(str(proposal))
     
     return "\n".join(lines)
-    
-    return "\n".join(comment_lines)
 
 
 def add_comment_to_workitem(
@@ -119,13 +125,36 @@ def main():
     work_item_id = os.getenv("WORK_ITEM_ID", "")
     has_chinese_str = os.getenv("HAS_CHINESE", "false").lower()
     chinese_text = os.getenv("CHINESE_TEXT", "[]")
-    background = os.getenv("RECOMMENDATION_BACKGROUND", "なし")
-    question_content = os.getenv("RECOMMENDATION_QUESTION_CONTENT", "なし")
-    proposal = os.getenv("RECOMMENDATION_PROPOSAL", "なし")
+    background_raw = os.getenv("RECOMMENDATION_BACKGROUND", json.dumps("なし"))
+    question_content_raw = os.getenv("RECOMMENDATION_QUESTION_CONTENT", json.dumps("なし"))
+    proposal_raw = os.getenv("RECOMMENDATION_PROPOSAL", json.dumps("なし"))
     
     collection_uri = os.getenv("SYSTEM_COLLECTION_URI", "")
     project = os.getenv("SYSTEM_TEAM_PROJECT", "")
     access_token = os.getenv("SYSTEM_ACCESS_TOKEN", "")
+    
+    # Decode JSON-encoded environment variables
+    try:
+        # Try to parse as JSON first (handles both quoted and unquoted strings)
+        if background_raw.startswith('"'):
+            background = json.loads(background_raw)
+        else:
+            background = background_raw
+            
+        if question_content_raw.startswith('"'):
+            question_content = json.loads(question_content_raw)
+        else:
+            question_content = question_content_raw
+            
+        if proposal_raw.startswith('"'):
+            proposal = json.loads(proposal_raw)
+        else:
+            proposal = proposal_raw
+    except (json.JSONDecodeError, TypeError) as e:
+        print(f"Warning: Failed to parse JSON-encoded variables: {e}", file=sys.stderr)
+        background = background_raw
+        question_content = question_content_raw
+        proposal = proposal_raw
     
     # Validate required variables
     required_vars = [
