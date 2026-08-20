@@ -25,18 +25,18 @@ def generate_comment(has_chinese: bool, chinese_text: Optional[list] = None,
                      background: str = "なし", question_content: str = "なし", 
                      proposal: str = "なし") -> str:
     """
-    Generate comment text based on analysis result using markdown format
+    Generate comment text based on analysis result
+    Uses HTML <br/> tags for line breaks to ensure proper formatting in Azure DevOps
     """
     lines = []
     
-    # Add Chinese detection result using markdown format
-    lines.append("### 【AIチェック結果】")
-    lines.append("")
+    # Add Chinese detection result
+    lines.append("【AIチェック結果】")
     
     if has_chinese:
-        lines.append("❌ **中国語が検出されました**")
+        lines.append("❌ 中国語が検出されました")
         lines.append("")
-        lines.append("**検出内容:**")
+        lines.append("検出内容:")
         
         # Format chinese_text for display
         if isinstance(chinese_text, str):
@@ -52,22 +52,27 @@ def generate_comment(has_chinese: bool, chinese_text: Optional[list] = None,
             for item in chinese_text:
                 lines.append(f"- {str(item)}")
         else:
-            lines.append("- N/A")
-        lines.append("")
+            lines.append("N/A")
     else:
-        lines.append("✅ **中国語は検出されませんでした**")
-        lines.append("")
+        lines.append("✅ 中国語は検出されませんでした")
     
-    # Add recommendation template with clear markdown formatting
-    lines.append("---")
+    # Add recommendation template with HTML line breaks
     lines.append("")
-    lines.append("### 以下の点について改善をご検討いただけますと幸いです。")
     lines.append("")
-    lines.append("**背景：**")
+    lines.append("以下の点について改善をご検討いただけますと幸いです。")
     lines.append("")
+    lines.append("背景：")
     lines.append(str(background))
     lines.append("")
-    lines.append("**質問内容：**")
+    lines.append("質問内容：")
+    lines.append(str(question_content))
+    lines.append("")
+    lines.append("提案：")
+    lines.append(str(proposal))
+    
+    # Join with HTML <br/> tags for Azure DevOps compatibility
+    result = "<br/>".join(lines)
+    return result
     lines.append("")
     lines.append(str(question_content))
     lines.append("")
