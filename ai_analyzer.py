@@ -36,18 +36,25 @@ Issue ID:
 対象テキスト:
 {clean_text}
 
-対象テキストに中国語が含まれているか判定してください。
+対象テキストに簡体字中国語（中国大陸で使用される中国語）が含まれているか判定してください。
 
-ルール:
-- 中国語が含まれている場合 has_chinese=true
-- 中国語がない場合 has_chinese=false
-- 中国語箇所を chinese_text に格納する
+重要な注意:
+- 日本語の漢字（例：内容、入力、画面など）は中国語ではありません
+- 繁体字中文（台湾や香港の中国語）は中国語ですが、判定の対象外とします
+- 簡体字のみを判定対象としてください
 
-以下のJSONのみ返却してください。
+さらに、対象テキストが中国語以外の問題を含む場合は、改善提案を生成してください。
+
+以下のJSONのみ返却してください。以下の例を参考にしてください：
 
 {{
   "has_chinese": false,
-  "chinese_text": []
+  "chinese_text": [],
+  "recommendation": {{
+    "background": "対象テキストの背景情報があればここに記入",
+    "question_content": "判定された問題や質問内容",
+    "proposal": "改善の提案内容"
+  }}
 }}"""
     
     return prompt
@@ -145,13 +152,22 @@ def main():
     # Extract results
     has_chinese = result.get("has_chinese", False)
     chinese_text = result.get("chinese_text", [])
+    recommendation = result.get("recommendation", {
+        "background": "なし",
+        "question_content": "なし",
+        "proposal": "なし"
+    })
     
     print(f"Has Chinese: {has_chinese}")
     print(f"Chinese Text: {json.dumps(chinese_text)}")
+    print(f"Recommendation: {json.dumps(recommendation, ensure_ascii=False)}")
     
     # Output as Azure Pipeline variables
     print(f"##vso[task.setvariable variable=HasChinese]{json.dumps(has_chinese).lower()}")
     print(f"##vso[task.setvariable variable=ChineseText]{json.dumps(chinese_text)}")
+    print(f"##vso[task.setvariable variable=RecommendationBackground]{recommendation.get('background', 'なし')}")
+    print(f"##vso[task.setvariable variable=RecommendationQuestionContent]{recommendation.get('question_content', 'なし')}")
+    print(f"##vso[task.setvariable variable=RecommendationProposal]{recommendation.get('proposal', 'なし')}")
     
     return 0
 

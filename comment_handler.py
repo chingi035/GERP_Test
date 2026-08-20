@@ -21,11 +21,21 @@ def get_auth_headers(access_token: str) -> dict:
     }
 
 
-def generate_comment(has_chinese: bool, chinese_text: Optional[list] = None) -> str:
+def generate_comment(has_chinese: bool, chinese_text: Optional[list] = None, 
+                     background: str = "なし", question_content: str = "なし", 
+                     proposal: str = "なし") -> str:
     """
     Generate comment text based on analysis result
     """
+    comment_lines = []
+    
+    # Add Chinese detection result
+    comment_lines.append("【AIチェック結果】\n")
+    
     if has_chinese:
+        comment_lines.append("❌ 中国語が検出されました\n")
+        comment_lines.append("検出内容:")
+        
         # Format chinese_text for display
         if isinstance(chinese_text, str):
             try:
@@ -36,20 +46,20 @@ def generate_comment(has_chinese: bool, chinese_text: Optional[list] = None) -> 
         if not isinstance(chinese_text, list):
             chinese_text = [chinese_text]
         
-        chinese_text_str = "\n".join(str(item) for item in chinese_text) if chinese_text else "N/A"
-        
-        comment = f"""【AIチェック結果】
-
-❌ 中国語が検出されました
-
-検出内容:
-{chinese_text_str}"""
+        if chinese_text:
+            comment_lines.append("\n".join(f"  - {str(item)}" for item in chinese_text))
+        else:
+            comment_lines.append("  N/A")
     else:
-        comment = """【AIチェック結果】
-
-✅ 中国語は検出されませんでした"""
+        comment_lines.append("✅ 中国語は検出されませんでした\n")
     
-    return comment
+    # Add recommendation template
+    comment_lines.append("\n\n以下の点について改善をご検討いただけますと幸いです。\n")
+    comment_lines.append(f"背景：\n{background}\n")
+    comment_lines.append(f"質問内容：\n{question_content}\n")
+    comment_lines.append(f"提案：\n{proposal}")
+    
+    return "\n".join(comment_lines)
 
 
 def add_comment_to_workitem(
@@ -99,6 +109,9 @@ def main():
     work_item_id = os.getenv("WORK_ITEM_ID", "")
     has_chinese_str = os.getenv("HAS_CHINESE", "false").lower()
     chinese_text = os.getenv("CHINESE_TEXT", "[]")
+    background = os.getenv("RECOMMENDATION_BACKGROUND", "なし")
+    question_content = os.getenv("RECOMMENDATION_QUESTION_CONTENT", "なし")
+    proposal = os.getenv("RECOMMENDATION_PROPOSAL", "なし")
     
     collection_uri = os.getenv("SYSTEM_COLLECTION_URI", "")
     project = os.getenv("SYSTEM_TEAM_PROJECT", "")
@@ -125,10 +138,13 @@ def main():
     print(f"Work Item ID: {work_item_id}")
     print(f"Has Chinese: {has_chinese}")
     print(f"Chinese Text: {chinese_text}")
+    print(f"Background: {background}")
+    print(f"Question Content: {question_content}")
+    print(f"Proposal: {proposal}")
     print("=" * 40)
     
     # Generate comment
-    comment = generate_comment(has_chinese, chinese_text)
+    comment = generate_comment(has_chinese, chinese_text, background, question_content, proposal)
     print(f"Generated Comment:\n{comment}")
     print("=" * 40)
     
