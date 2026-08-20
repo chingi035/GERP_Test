@@ -84,12 +84,37 @@ def call_ai_api(prompt, api_url, max_tokens=500):
         response.raise_for_status()
         
         result = response.json()
-        ai_result = result.get("response", "")
+        print(f"DEBUG: Full API Response: {json.dumps(result, ensure_ascii=False)}", file=sys.stderr)
+        
+        # Try to get 'response' field first, then fall back to the result itself
+        ai_result = result.get("response", None)
+        
+        # If 'response' field is not present, check if the result itself is a string
+        if ai_result is None:
+            if isinstance(result, dict):
+                # If it's a dict with has_chinese field, it's already the parsed response
+                if "has_chinese" in result:
+                    ai_result = json.dumps(result)
+                else:
+                    print(f"Error: Unexpected API response structure: {result}", file=sys.stderr)
+                    sys.exit(1)
+            elif isinstance(result, str):
+                ai_result = result
+            else:
+                print(f"Error: Unexpected response type: {type(result)}", file=sys.stderr)
+                sys.exit(1)
+        
+        # Ensure ai_result is a string
+        if not isinstance(ai_result, str):
+            ai_result = json.dumps(ai_result)
         
         return ai_result
     
     except requests.exceptions.RequestException as e:
         print(f"Error calling AI API: {e}", file=sys.stderr)
+        sys.exit(1)
+    except json.JSONDecodeError as e:
+        print(f"Error decoding JSON from API: {e}", file=sys.stderr)
         sys.exit(1)
 
 
@@ -98,15 +123,26 @@ def parse_ai_response(ai_response_text):
     Parse AI response and extract JSON
     """
     try:
-        # Try to extract JSON from response
-        json_match = re.search(r'\{[\s\S]*\}', ai_response_text)
-        if json_match:
-            json_str = json_match.group(0)
-            result = json.loads(json_str)
-            return result
-        else:
-            print(f"Error: Could not find JSON in response: {ai_response_text}", file=sys.stderr)
+        # Ensure input is a string
+        if not isinstance(ai_response_text, str):
+            print(f"Error: Response is not a string, got type: {type(ai_response_text)}", file=sys.stderr)
+            print(f"Response value: {ai_response_text}", file=sys.stderr)
             sys.exit(1)
+        
+        # Try to parse directly as JSON first
+        try:
+            result = json.loads(ai_response_text)
+            return result
+        except json.JSONDecodeError:
+            # If direct parsing fails, try to extract JSON from the response
+            json_match = re.search(r'\{[\s\S]*\}', ai_response_text)
+            if json_match:
+                json_str = json_match.group(0)
+                result = json.loads(json_str)
+                return result
+            else:
+                print(f"Error: Could not find JSON in response: {ai_response_text}", file=sys.stderr)
+                sys.exit(1)
     
     except json.JSONDecodeError as e:
         print(f"Error parsing JSON response: {e}", file=sys.stderr)
@@ -144,10 +180,19 @@ def main():
     
     # Call AI API
     print("Calling AI API...")
-    ai_response = call_ai_api(prompt, api_url)
+    try:
+        ai_response = call_ai_api(prompt, api_url)
+        print(f"DEBUG: AI Response (type: {type(ai_response).__name__}): {ai_response[:500]}", file=sys.stderr)
+    except Exception as e:
+        print(f"Error calling AI API: {e}", file=sys.stderr)
+        sys.exit(1)
     
     # Parse response
-    result = parse_ai_response(ai_response)
+    try:
+        result = parse_ai_response(ai_response)
+    except Exception as e:
+        print(f"Error parsing AI response: {e}", file=sys.stderr)
+        sys.exit(1)
     
     # Extract results
     has_chinese = result.get("has_chinese", False)
