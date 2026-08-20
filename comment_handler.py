@@ -73,14 +73,6 @@ def generate_comment(has_chinese: bool, chinese_text: Optional[list] = None,
     # Join with HTML <br/> tags for Azure DevOps compatibility
     result = "<br/>".join(lines)
     return result
-    lines.append("")
-    lines.append(str(question_content))
-    lines.append("")
-    lines.append("**提案：**")
-    lines.append("")
-    lines.append(str(proposal))
-    
-    return "\n".join(lines)
 
 
 def add_comment_to_workitem(
